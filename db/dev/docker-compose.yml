@@ -1,0 +1,130 @@
+# Nom du projet Docker Compose
+name: orchestrator-project
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: postgres_keywords_dev
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      # Volume pour persister les données PostgreSQL
+      - postgres_data_dev:/var/lib/postgresql/data
+
+      # Volume pour les scripts d'initialisation
+      - ./init:/docker-entrypoint-initdb.d
+    networks:
+      - shared-keywords-net
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    mem_limit: 1G
+    cpus: "1.0"
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin_keywords_dev
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+    ports:
+      - "5050:80"
+    networks:
+      - shared-keywords-net
+    mem_limit: 512M
+    cpus: "0.5"
+    depends_on:
+      - postgres
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:80" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  rabbitmq:
+    image: ghcr.io/fmaupin/rabbit-keywords:latest
+    container_name: rabbit_keywords_dev
+    ports:
+      - "5672:5672"
+      - "16000:16000"
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+    networks:
+      - shared-keywords-net
+    mem_limit: 1G
+    cpus: "1.0"
+    healthcheck:
+      test: [ "CMD", "curl", "-u", "${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}", "-f", "http://localhost:16000/api/health/checks/virtualhosts" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  read-content-service:
+    image: ghcr.io/fmaupin/read-content-service:latest
+    container_name: read_content_service_dev
+    ports:
+      - "8080:8080"
+    environment:
+      - MY_PASSWORD_BROKER=${MY_PASSWORD_BROKER}
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_PROFILES_ACTIVE=dev
+      - ACTUATOR_USER=${ACTUATOR_USER}
+      - ACTUATOR_PASSWORD=${ACTUATOR_PASSWORD}
+      - JAVA_OPTS=-Xms128m -Xmx512m
+    networks:
+      - shared-keywords-net
+    volumes:
+      # Monte un dossier hôte dans /data/files du conteneur
+      - "${HOST_FILES_DIR}:/data/files:ro"
+    mem_limit: 768M
+    cpus: "0.75"
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      # laisser plus de temps au démarrage pour spring boot
+      start_period: 40s
+
+  extract-service:
+    image: ghcr.io/fmaupin/extract-service:latest
+    container_name: extract_service_dev
+    ports:
+      - "8081:8081"
+    environment:
+      - MY_PASSWORD_BROKER=${MY_PASSWORD_BROKER}
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_PROFILES_ACTIVE=dev
+      - JAVA_OPTS=-Xms128m -Xmx512m
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - ACTUATOR_USER=${ACTUATOR_USER}
+      - ACTUATOR_PASSWORD=${ACTUATOR_PASSWORD}
+    networks:
+      - shared-keywords-net
+    mem_limit: 768M
+    cpus: "0.75"
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:8081/actuator/health || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      # laisser plus de temps au démarrage pour spring boot
+      start_period: 60s
+
+networks:
+  shared-keywords-net:
+    external: true
+
+volumes:
+  postgres_data_dev:
+    name: postgres_keywords_data_dev
