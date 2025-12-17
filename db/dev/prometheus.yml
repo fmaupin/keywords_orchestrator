@@ -1,0 +1,45 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: cadvisor
+    static_configs:
+      - targets:
+          - cadvisor:8080
+
+  - job_name: read-content-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - read-content-service:8080
+        labels:
+          application: read-content-service
+
+  - job_name: extract-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - extract-service:8081
+        labels:
+          application: extract-service
+
+  - job_name: rabbitmq
+    static_configs:
+      - targets:
+          - rabbitmq:15692
+        labels:
+          application: rabbitmq
+          vhost: keywords-dev
+
+  - job_name: corenlp
+    metrics_path: /probe
+    params:
+      module: [tcp_corenlp]
+    static_configs:
+      - targets:
+          - corenlp-server:9001
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - target_label: __address__
+        replacement: blackbox:9115

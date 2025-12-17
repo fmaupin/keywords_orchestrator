@@ -1,6 +1,8 @@
 # Projet orchestrator
 
-L'objectif de ce projet est de fournir une stack `docker` prête en l'emploi.  
+**IMPORTANT** : la stack `docker` du serveur [coreNLP](https://github.com/fmaupin/keywords_core_nlp - stack métier) doit être exécutée en premier -> elle initialise un réseau docker mutualisé - réseau utilisé par les services de la stack du projet orchestrator.
+
+L'objectif de ce projet est de fournir une stack `docker` prête en l'emploi (stack de monitoring).
 
 Les containeurs qui sont inclus :
 * service `read-content-service`
@@ -8,14 +10,18 @@ Les containeurs qui sont inclus :
 * service broker `rabbitMQ`
 * service base de données `postgres`
 * service `pgadmin` (outil de gestion de la base de données)
-
-Cette stack vient en complément de la stack `docker` du serveur [coreNLP](https://github.com/fmaupin/keywords_core_nlp).
+* service `cadvisor` (outil de monitoring des containers)
+* service `prometheus` (outil de collecte et d'interrogation des métriques)
+* service `grafana` (outil de visualisation des métriques)
+* service `blackbox-exporter` (outil de monitoring pour service `coreNLP`)
 
 Elle est associée à un environnement (`dev` ou `prod`).
 
 ## Fichier .env
 
 Sur le répertoire de votre environnement (`dev`|`prod`), veuillez créer un fichier .env.
+
+**ATTENTION** : le fichier doit respecter strictement le format ci-dessous (pas de commentaires, de CR/LF intempestifs, ...)
 
 Exemple de contenu:
 ```
@@ -30,9 +36,10 @@ PGADMIN_EMAIL=xxxxxx
 PGADMIN_PASSWORD=xxxxxx
 ACTUATOR_USER=xxxxxx
 ACTUATOR_PASSWORD=xxxxxx
+GF_SECURITY_ADMIN_PASSWORD=xxxxxx
 ```
 
-## Lancer le serveur
+## Lancer les services
 ```
 ./run_services.sh <GITHUB_USERNAME> <GITHUB_TOKEN> <environnment>
 ```
