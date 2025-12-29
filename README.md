@@ -7,6 +7,7 @@ L'objectif de ce projet est de fournir une stack `docker` prête en l'emploi (st
 Les containeurs qui sont inclus :
 * service `read-content-service`
 * servide `extract-service`
+* service `aggregate-service`
 * service broker `rabbitMQ`
 * service base de données `postgres`
 * service `pgadmin` (outil de gestion de la base de données)
@@ -39,9 +40,13 @@ ACTUATOR_PASSWORD=xxxxxx
 GF_SECURITY_ADMIN_PASSWORD=xxxxxx
 ```
 
-## Lancer les services
+## (Re)lancer le(s) service(s)
 ```
 ./run_services.sh <GITHUB_USERNAME> <GITHUB_TOKEN> <environnment>
+```
+
+```
+./restart_container.sh <environnment> <service_name> [<volume_name>]
 ```
 
 L'environnement peut être `dev` ou `prod`.

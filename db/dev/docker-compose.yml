@@ -124,6 +124,33 @@ services:
       # laisser plus de temps au démarrage pour spring boot
       start_period: 60s
 
+  aggregate-service:
+    image: ghcr.io/fmaupin/aggregate-service:latest
+    container_name: aggregate_service_dev
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    environment:
+      - MY_PASSWORD_BROKER=${MY_PASSWORD_BROKER}
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_PROFILES_ACTIVE=dev
+      - JAVA_TOOL_OPTIONS=-Xms128m -Xmx512m -Djava.net.preferIPv4Stack=true
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - ACTUATOR_USER=${ACTUATOR_USER}
+      - ACTUATOR_PASSWORD=${ACTUATOR_PASSWORD}
+    networks:
+      - shared-keywords-net
+    mem_limit: 768M
+    cpus: "0.75"
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://127.0.0.1:8082/actuator/health || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      # laisser plus de temps au démarrage pour spring boot
+      start_period: 60s
+
   cadvisor:
     image: google/cadvisor:latest
     container_name: cadvisor
